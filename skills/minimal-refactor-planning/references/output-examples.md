@@ -1,51 +1,51 @@
-# Output Examples
+# 输出示例
 
-Use these examples to keep responses implementation-oriented, concrete, and scoped.
-
----
-
-## Example 1: Generic minimal-change plan
-
-I’d use the smallest change that centralizes the shared flow without widening scope.
-
-### Options
-1. Keep the current structure and patch each call site.  
-   Fastest short-term, but duplication stays and drift gets worse.
-
-2. Introduce one shared owner for the core flow.  
-   Best fit here: one place owns the logic, call sites become thin triggers.
-
-3. Split into several new layers now.  
-   More flexible in theory, but too much abstraction for this change.
-
-### Recommendation
-Go with option 2.
-
-### Design
-- Add one shared module/service/hook to own the core flow
-- Keep current entry points, but reduce them to triggering and param passing
-- Preserve current success/error semantics
-
-### Flow
-1. Entry point receives user/system input
-2. Shared owner validates and runs the main flow
-3. Result is returned to the caller
-4. Caller handles display/response only
-
-### Change scope
-- Move duplicated logic out of existing entry points
-- Add one shared owner
-- Update callers to delegate to it
-- Remove temporary glue/indirect wiring where possible
-
-### Validation
-- Verify extracted pure logic
-- Run targeted regression on the main path
-- Run local lint/typecheck/build as appropriate
+用这些例子来保持回答风格：具体、可执行、范围受控。
 
 ---
 
-## Example 2: Frontend-style answer
+## 示例 1：通用“最小改法”回答
+
+我建议这次用最小改法：把真正共享的流程收进一个统一边界里，不扩大范围。
+
+### 方案对比
+1. 维持现状，在每个调用点继续补丁式修改  
+   短期最快，但重复逻辑还在，后面还会继续漂。
+
+2. 抽一个共享 owner 承接核心流程  
+   这次最合适：主逻辑只留一份，调用点退化成薄入口。
+
+3. 现在就拆成多层新结构  
+   理论上更灵活，但对这次来说偏重了。
+
+### 推荐方案
+选方案 2。
+
+### 设计
+- 新增一个共享 module / service / hook 承接主流程
+- 保留现有入口，但只负责触发和参数传递
+- 保持成功/失败语义不变
+
+### 主流程
+1. 入口接收输入
+2. 共享 owner 做校验并执行主流程
+3. 结果返回调用方
+4. 调用方负责展示或响应
+
+### 改动范围
+- 把重复逻辑迁出入口
+- 新增一个共享 owner
+- 让调用方改成委托执行
+- 能删掉的临时胶水逻辑尽量删掉
+
+### 验证
+- 验证抽出的纯逻辑
+- 回归主链路
+- 跑局部 lint / typecheck / build
+
+---
+
+## 示例 2：前端风格回答
 
 我建议这次先做最小收口：把共享流程提到共同上层持有，两个入口都只保留触发。
 
@@ -82,53 +82,51 @@ Go with option 2.
 
 ---
 
-## Example 3: Backend-style answer
+## 示例 3：后端风格回答
 
-I would keep the route handlers thin and extract the business flow into one shared service.
+我会让 route handler 保持薄，把业务主流程抽到一个共享 service 里。
 
-### Options
-1. Patch both handlers independently  
-   Lower immediate cost, but duplication remains.
+### 方案对比
+1. 分别补两个 handler  
+   当下成本低，但重复逻辑依然存在。
 
-2. Extract one service/use-case and keep handlers as adapters  
-   Best balance of cleanliness and low risk.
+2. 抽一个 service / use-case，让 handler 只做适配  
+   干净度和风险控制最平衡，适合这次。
 
-3. Redesign handlers, repositories, and domain structure together  
-   Too broad for the requested change.
+3. 连 route、repository、domain 一起重构  
+   范围太大，不符合这次目标。
 
-### Recommendation
-Use option 2.
+### 推荐方案
+选方案 2。
 
-### Design
-- Keep parsing/auth/response shaping in handlers
-- Move orchestration and decision-making into one service
-- Isolate third-party I/O behind existing adapters or a small new boundary
+### 设计
+- 请求解析 / 鉴权 / 响应组装留在 handler
+- 编排和业务判断下沉到 service
+- 第三方 I/O 继续走现有 adapter，必要时补一个小边界
 
-### Flow
-1. Handler validates input
-2. Handler calls the service
-3. Service runs the business flow
-4. Service returns a stable result
-5. Handler maps it back to HTTP/CLI/job output
+### 主流程
+1. handler 校验输入
+2. handler 调 service
+3. service 执行业务流程
+4. service 返回稳定结果
+5. handler 把结果映射回 HTTP / CLI / job 输出
 
-### Change scope
-- Add one service
-- Move shared logic into it
-- Update current handlers/jobs to delegate
-- Keep external behavior unchanged
+### 改动范围
+- 新增一个 service
+- 把共享逻辑迁进去
+- 当前入口统一改成委托
+- 外部行为保持不变
 
-### Validation
-- Unit-test the service decision path where practical
-- Run targeted integration/regression on the affected endpoint/job
-- Run focused static checks
+### 验证
+- 尽量对 service 的核心决策路径做定向验证
+- 回归受影响的 endpoint / job
+- 跑聚焦的静态检查
 
 ---
 
-## Example 4: Language for rejecting overdesign
+## 示例 4：拒绝过度设计时可用的话
 
-Useful lines:
-
-- “I wouldn’t split this further yet; the extra abstraction doesn’t pay for itself in this change.”
-- “This solves the ownership problem without turning the feature into a framework.”
-- “The cleaner-looking option is broader than the problem we’re actually solving.”
-- “For now, one shared boundary is enough; if reuse expands later, we can split again from there.”
+- “我不建议这次继续细拆，新增抽象的收益还不够覆盖成本。”
+- “这个方案已经能解决归属和复用问题，不需要把它做成一个框架。”
+- “更优雅的方案范围更大，但不是这次真正要解决的问题。”
+- “这次先收一个共享边界就够了，后面如果复用继续扩大，再从这里继续拆。”

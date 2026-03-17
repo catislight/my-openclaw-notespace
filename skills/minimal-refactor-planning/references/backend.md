@@ -1,118 +1,116 @@
-# Backend Refactor Heuristics
+# 后端改造参考
 
-Use this reference when the problem is mostly in handlers, routes, services, jobs, workers, scripts, CLI commands, or multi-step server-side flow.
+当问题主要集中在 handler、route、service、job、worker、脚本、CLI 命令或多步骤服务端流程时，读取这个 reference。
 
-## Common backend smells
+## 常见后端异味
 
-### 1. Handler/controller owns too much
-Typical signal:
+### 1. handler / controller 管太多
+典型信号：
 
-- request parsing
-- validation
-- authorization
-- orchestration
-- external API calls
-- persistence
-- response shaping
+- 请求解析
+- 参数校验
+- 权限判断
+- 流程编排
+- 外部 API 调用
+- 持久化
+- 响应组装
 
-all mixed inside one function.
+全都混在一个函数里。
 
-Preferred direction:
+优先方向：
 
-- keep protocol/request concerns near the edge
-- move business flow into a service/use-case layer
-- isolate external integrations behind explicit boundaries
+- 协议/请求相关的东西留在边缘
+- 业务主流程下沉到 service / use-case
+- 外部集成放到明确边界后面
 
-### 2. Same business flow appears in multiple endpoints or jobs
-Typical signal:
+### 2. 同一套业务流程出现在多个入口
+典型信号：
 
-- similar logic copied across route handlers, cron jobs, consumers, or commands
-- small drift has already started between copies
+- 多个 route handler、cron job、consumer、command 里在复制相似逻辑
+- 不同副本之间已经开始轻微漂移
 
-Preferred direction:
+优先方向：
 
-- centralize the business flow
-- let each entrypoint adapt inputs/outputs only
+- 把业务主流程集中起来
+- 各入口只负责适配自己的输入输出
 
-### 3. Infrastructure leaks everywhere
-Typical signal:
+### 3. 基础设施泄漏到处都是
+典型信号：
 
-- database calls, queue publishing, HTTP clients, logging, and domain decisions interwoven
-- impossible to test the core decision path without booting everything
+- 数据库、队列、HTTP client、日志和业务判断全混在一起
+- 不启动整套环境就几乎无法验证核心决策逻辑
 
-Preferred direction:
+优先方向：
 
-- separate orchestration from infrastructure adapters
-- define a narrower core path that can be tested with stubs/fakes
+- 把流程编排和基础设施适配拆开
+- 收出一条可用 stub/fake 验证的核心路径
 
-### 4. Hidden coupling through shared util sprawl
-Typical signal:
+### 4. util 泛滥导致隐藏耦合
+典型信号：
 
-- many “utils” with unclear ownership
-- behavior depends on side effects or shared mutable state
-- changes in one place unpredictably affect others
+- 到处都是不知归属的 utils
+- 行为依赖副作用或共享可变状态
+- 改一处，别处也容易被波及
 
-Preferred direction:
+优先方向：
 
-- group logic by responsibility, not by generic “util” naming
-- create focused modules with clear contracts
+- 按职责分组，而不是按“通用工具”命名
+- 用边界清晰的模块代替松散 util 堆
 
-### 5. Large refactor temptation
-Typical signal:
+### 5. 容易冲动做大重构
+典型信号：
 
-- the code is messy, so the impulse is to redesign routes, services, repositories, and domain model at once
+- 因为代码乱，就想顺手把 route、service、repository、domain model 全改一遍
 
-Preferred direction:
+优先方向：
 
-- refactor only around the path needed for the requested change
-- improve the boundary that reduces duplication or confusion now
-- stop once the requested change becomes straightforward
+- 只围绕本次要改的路径重构
+- 先解决当前最影响理解和复用的问题
+- 一旦这次需求变得顺畅，就及时收手
 
-## Choosing the right abstraction
+## 如何选抽象
 
-### Service / use-case
-Use when the main need is to centralize business orchestration.
+### service / use-case
+适合承接业务主流程和流程编排。
 
-### Adapter / gateway
-Use when isolating external systems:
+### adapter / gateway
+适合隔离外部系统：
 
 - database
-- third-party APIs
-- queues
+- third-party API
+- queue
 - storage
-- RPC clients
+- RPC client
 
-### Helper / module
-Use when extracted logic is deterministic and mostly pure.
+### helper / module
+适合抽出确定性强、接近纯函数的逻辑。
 
-### Command wrapper / job runner
-Use when multiple operational entrypoints should share one execution path.
+### command wrapper / job runner
+适合让多个运维/任务入口共用一套执行流程。
 
-## Preferred answer shape for backend cases
+## 后端问题回答时应说清楚什么
 
-Good backend plans usually clarify:
+一个好的后端改造方案，通常要明确：
 
-1. what stays at the transport edge
-2. what moves into the service/use-case layer
-3. what infrastructure boundary should be isolated
-4. what behavior remains unchanged
-5. how to validate without exploding scope
+1. 哪些内容留在协议边缘
+2. 哪些内容下沉到 service / use-case
+3. 哪些外部依赖需要隔离
+4. 哪些行为保持不变
+5. 如何在不扩大范围的前提下验证
 
-## Backend-specific trade-off language
+## 常用表述
 
-Useful phrases:
+- “把请求/协议相关逻辑留在边缘，业务流程往里收。”
+- “这些入口应该变成同一条执行路径上的薄适配层。”
+- “这样可以隔离外部 I/O，而不用顺手引爆整个架构。”
+- “对这次需求来说，抽一个聚焦的 service 就够了。”
 
-- “Keep request/transport concerns at the edge and move the business flow inward.”
-- “These endpoints should become thin adapters over one shared execution path.”
-- “This isolates external I/O without forcing a broader architecture rewrite.”
-- “For this change, a focused service extraction is enough.”
+## 常见坑
 
-## Common pitfalls
+默认不要这样建议：
 
-Avoid recommending these by default:
-
-- full domain-driven redesign for a local cleanup
-- repository/service/factory layering with no immediate payoff
-- premature abstraction around a single caller
-- mixing protocol concerns with business semantics after the refactor
-- renaming everything while also changing behavior
+- 为局部清理直接做一整套 DDD 重构
+- 没有即时收益却硬上 repository/service/factory 多层
+- 只有一个调用方就先做过度抽象
+- 重构后仍把协议层和业务语义混在一起
+- 一边改行为，一边大规模重命名，导致风险叠加

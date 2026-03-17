@@ -1,250 +1,250 @@
 ---
 name: minimal-refactor-planning
-description: Provide a minimal, implementation-oriented refactor plan before writing code. Use when the user asks for the smallest-change design, wants options compared, needs responsibilities/state/logic boundaries clarified, or asks for a concrete implementation plan covering recommended approach, flow, affected modules, and validation. Works across frontend, backend, scripts, CLIs, and service code.
+description: 在写代码前，先给出现有功能改造的最小实现方案。适用于用户要求“先别写代码，先出方案”“给最小改法”“比较几种改法”“梳理职责、状态、逻辑边界”“给一个可落地的实现计划”等场景。适用于前端、后端、脚本、CLI、服务端等改造任务。
 ---
 
 # Minimal Refactor Planning
 
-Use this skill when the user does **not** want immediate code changes, but instead wants a practical implementation plan for modifying existing code with minimal disruption.
+当用户**不是要你立刻写代码**，而是希望你先给出一个低风险、可落地、改动受控的改造方案时，使用这个 skill。
 
-## Use this skill when
+## 何时使用
 
-Trigger on requests like:
+以下类型的请求适合触发：
 
-- "先别写代码，先给方案"
-- "给我最小改法"
-- "比较一下这几种改法"
-- "这块应该怎么拆"
-- "帮我梳理下实现方案"
-- "给个落地计划"
-- "尽量少动现有代码，怎么改"
+- “先别写代码，先给方案”
+- “给我最小改法”
+- “比较一下这几种改法”
+- “这块应该怎么拆”
+- “帮我梳理下实现方案”
+- “给个落地计划”
+- “尽量少动现有代码，怎么改”
 
-Typical situations:
+常见问题特征：
 
-- responsibilities are mixed together
-- logic is duplicated across multiple entry points
-- state ownership is unclear
-- modules/components depend on each other in awkward ways
-- temporary mechanisms (events, glue code, implicit contracts) need cleanup
-- the user wants a recommendation, not a vague architecture lecture
+- 多种职责混在一起
+- 多个入口重复实现同一套流程
+- 状态归属不清楚
+- 模块/组件之间依赖关系别扭
+- 依赖临时拼接出来的通信方式（事件、胶水代码、隐式约定）
+- 用户要的是明确建议，不是空泛架构讨论
 
-## Goal
+## 目标
 
-Produce a plan that is:
+输出一个满足以下要求的方案：
 
-1. minimal in change scope
-2. explicit about trade-offs
-3. concrete enough to implement next
-4. careful about regressions
-5. free of unnecessary abstraction
+1. 改动范围尽量小
+2. 取舍清楚
+3. 足够具体，下一步可以直接实现
+4. 注意回归风险
+5. 不做不必要的抽象
 
-Default bias:
+默认倾向：
 
-- prefer the smallest workable change
-- prefer explicit dependencies over indirect wiring
-- prefer consolidating shared logic into one place
-- avoid platform-level redesign unless the user asks for it
+- 优先选最小可行改法
+- 优先显式依赖，不绕
+- 优先把共享逻辑收口到一处
+- 除非用户明确要求，否则不做平台级重构
 
-## Default workflow
+## 默认工作方式
 
-Unless the user asks otherwise:
+除非用户另有要求，按这个顺序处理：
 
-1. Identify the real responsibilities currently mixed together
-2. Find the narrowest boundary that can absorb the shared logic
-3. Compare 2–3 viable approaches
-4. Recommend one approach clearly
-5. Describe the flow and affected areas
-6. Define a small validation plan
-7. Do **not** write code yet
+1. 识别当前实现里真正混在一起的职责
+2. 找出最小、最合适的承接边界
+3. 给出 2～3 个可行方案
+4. 明确推荐其中一个
+5. 说明主流程和受影响范围
+6. 给出小而够用的验证计划
+7. **先不写代码**
 
-## Default answer structure
+## 默认输出结构
 
-### 1. Conclusion first
+### 1. 先给结论
 
-Start with the recommendation in one or two sentences.
+开头先直接说推荐哪种改法，并用一两句话说明原因。
 
-Good examples:
+好的表达方式例如：
 
-- I’d use a minimal split here: move the shared flow into one owning layer, keep each entry point as a trigger only.
-- I would not over-split this yet; one shared abstraction is enough for this change.
+- 我建议这次先做最小拆分：把共享流程收进一个统一 owner，入口只保留触发。
+- 这次不建议继续细拆，一个共享抽象已经够了。
 
-### 2. Option comparison
+### 2. 方案对比
 
-List 2–3 options. For each option, briefly cover:
+列 2～3 个方案即可。每个方案简要说明：
 
-- where the logic would live
-- who owns core state / flow
-- whether dependencies become cleaner or messier
-- whether it fits this change’s scope
+- 逻辑放在哪
+- 谁持有核心状态 / 核心流程
+- 依赖关系是变干净还是更绕
+- 是否适合这次需求范围
 
-Do not present all options as equal. The recommendation should be obvious.
+不要把几个方案写得像都差不多。推荐方案应当很明显。
 
-### 3. Recommended design
+### 3. 推荐设计
 
-Describe:
+说明：
 
-- what abstraction to introduce, if any  
-  (e.g. shared module, helper, service, manager, hook, controller, adapter)
-- where it should live
-- what it owns
-- what it should **not** own
-- how surrounding modules call into it
+- 要不要新增抽象；如果要，新增什么  
+  （如 shared module、helper、service、manager、hook、controller、adapter）
+- 它放在哪一层
+- 它负责什么
+- 它不负责什么
+- 周边模块如何接入它
 
-### 4. Flow
+### 4. 主流程
 
-Describe the main execution path step by step:
+按步骤说明主执行路径：
 
-1. where the flow starts
-2. who receives it
-3. who performs the core work
-4. how success is propagated
-5. how failure is handled
-6. what existing behavior remains unchanged
+1. 从哪里开始
+2. 由谁接住
+3. 谁执行核心逻辑
+4. 成功后如何回传
+5. 失败后如何处理
+6. 哪些已有行为保持不变
 
-Use “data flow”, “call flow”, or “execution flow” depending on the problem.
+根据问题类型，也可以写成“数据流”“调用流”或“执行流”。
 
-### 5. Change scope
+### 5. 改动范围
 
-List the practical edits:
+列出实际要动的东西：
 
-- what logic moves
-- what becomes a thin trigger/caller
-- what new shared unit is added
-- what temporary communication should be removed
-- what interfaces/params need to change
+- 哪些逻辑要迁移
+- 哪些位置改成薄触发器 / 调用方
+- 新增什么共享单元
+- 哪些临时通信方式要移除
+- 哪些接口 / 参数需要调整
 
-### 6. Validation
+### 6. 验证
 
-Keep validation proportional. Usually include only:
+验证范围要和改动规模匹配。通常只包括：
 
-- pure-function or helper verification where relevant
-- targeted tests
-- local lint / typecheck / build checks
-- key regression paths
+- 抽出的纯函数 / 辅助逻辑验证
+- 定向测试
+- 局部 lint / typecheck / build
+- 关键回归路径
 
-Do not silently expand the scope into a full rewrite or full test overhaul.
+不要默认把范围扩大成全量重构或全量测试补齐。
 
-## Decision heuristics
+## 决策准则
 
-### Prefer consolidating the real shared flow
+### 优先收口真正共享的流程
 
-If multiple entry points eventually do the same thing, centralize the actual handling. Let the edge locations keep only:
+如果多个入口最终做的是同一件事，就把真正的处理逻辑集中到一处。边缘位置只保留：
 
-- triggering
-- passing parameters
-- rendering state or results
+- 触发
+- 参数传递
+- 展示状态或结果
 
-Avoid duplicating orchestration across many places.
+避免在多个地方复制流程编排。
 
-### Prefer explicit dependencies
+### 优先显式依赖
 
-If the current design relies on:
+如果当前设计依赖这些东西：
 
-- global events
-- implicit contracts
-- reversed ownership
-- scattered glue code
-- hard-to-follow cross-calls
+- 全局事件
+- 隐式约定
+- 反向归属
+- 分散的胶水代码
+- 很难追踪的跨模块调用
 
-Prefer:
+优先改成：
 
-- explicit injection
-- direct method/callback boundaries
-- a shared owning abstraction
-- a straighter call graph
+- 显式注入
+- 明确的方法 / 回调边界
+- 一个共享 owner
+- 更直的调用链
 
-### Prefer one new abstraction over many
+### 优先一个新抽象，而不是很多层
 
-Do not split aggressively by default.
+默认不要过度细拆。
 
-Add more layers only when at least one is clearly true:
+只有在以下至少一条明显成立时，才继续加层：
 
-- the logic is already reused across many places
-- the behavior is evolving in multiple directions
-- independent testing genuinely needs isolated boundaries
-- one abstraction would otherwise own unrelated concerns
+- 逻辑已经被很多地方复用
+- 行为明显会往多个方向演进
+- 测试隔离确实需要独立边界
+- 一个抽象已经开始承载多个不相关职责
 
-### Preserve behavior first
+### 优先保留现有语义
 
-Default assumption: refactor should preserve semantics unless the user asked for behavioral change.
+默认假设：这次重构要保持行为不变，除非用户明确要求改行为。
 
-Protect:
+重点保护：
 
-- existing business meaning
-- success/failure behavior
-- callback timing
-- return shape / output expectations
-- core user-visible flow
+- 现有业务语义
+- 成功 / 失败处理方式
+- 回调时机
+- 返回结构 / 输出预期
+- 用户可见主流程
 
-### Avoid overdesign
+### 避免过度设计
 
-Call out when something is theoretically elegant but not worth it for this change.
+如果某个方案“理论上更优雅，但这次不值”，要直接指出来。
 
-Common warning signs:
+常见警报：
 
-- too many new abstractions
-- paying for future flexibility too early
-- introducing infrastructure for a local problem
-- broadening scope beyond the user’s ask
+- 新抽象太多
+- 为未来扩展提前付出过多成本
+- 为局部问题引入过重基础设施
+- 把范围扩大到用户并没要求的层面
 
-## Style requirements
+## 输出风格要求
 
-- conclusion first
-- practical, not academic
-- explain trade-offs, not just structure
-- optimize for low-risk execution
-- do not dump the decision back on the user without a recommendation
-- do not start coding unless requested
+- 先结论，后展开
+- 工程判断感强，不要像写教材
+- 重点讲取舍，不讲空话
+- 默认站在低风险、快落地的角度
+- 不要把决定权完全甩回给用户
+- 用户没要求前，不要直接开始写代码
 
-## Reusable response skeleton
+## 可复用回答骨架
 
-Use this shape unless the user wants a different format:
+默认按这个结构组织：
 
-- My recommendation:
-- Option comparison:
+- 我的建议：
+- 方案对比：
   1. ...
   2. ...
   3. ...
-- Recommended design:
-- Main flow:
-- Change scope:
-- Validation:
+- 推荐方案：
+- 主流程：
+- 改动范围：
+- 验证方式：
 
-## Common abstraction guide
+## 常见抽象的选择方式
 
-When choosing where logic should go, use the lightest abstraction that fits:
+选择承接逻辑的位置时，优先用最轻的抽象：
 
 - **helper / shared module**  
-  for reusable pure logic
+  用于可复用的纯逻辑
 
 - **service / manager**  
-  for orchestration, I/O, resource handling, multi-step flow
+  用于流程编排、I/O、资源处理、多步骤执行
 
 - **hook / controller**  
-  for stateful interactive flow
+  用于带状态的交互式流程
 
 - **adapter / bridge**  
-  for compatibility boundaries or isolating third-party/legacy interfaces
+  用于兼容边界、旧接口、第三方能力隔离
 
-Choose based on the problem, not by habit.
+不要按习惯硬套，要按问题本身选。
 
 ## References
 
-Read these only when relevant:
+按需读取：
 
-- For frontend-oriented heuristics and common UI/state refactor patterns: `references/frontend.md`
-- For backend/service/handler/job refactor patterns: `references/backend.md`
-- For concrete answer shapes and example outputs: `references/output-examples.md`
+- 前端、UI、状态归属、组件边界问题：`references/frontend.md`
+- 后端、handler、service、job、脚本流程问题：`references/backend.md`
+- 具体回答模板和输出例子：`references/output-examples.md`
 
-## What not to do
+## 不要这样做
 
-Avoid responses that:
+避免给出以下类型的回答：
 
-- stay abstract and never map to real edits
-- list options without a recommendation
-- propose a large redesign for a local issue
-- optimize for elegance over change cost
-- invent a future platform roadmap the user did not ask for
-- sound comprehensive but do not guide implementation
+- 只有概念，没有实际改动指引
+- 只列方案，不给推荐
+- 为局部问题上来就大重构
+- 为了“优雅”牺牲改动成本
+- 虚构用户没要求的平台化蓝图
+- 看起来很完整，但无法指导下一步实现
 
-The goal is not to sound architectural. The goal is to produce the next good move.
+目标不是显得“很懂架构”，而是给出**下一步真的能落地的改法**。

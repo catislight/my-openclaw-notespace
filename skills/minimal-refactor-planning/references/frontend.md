@@ -1,119 +1,117 @@
-# Frontend Refactor Heuristics
+# 前端改造参考
 
-Use this reference when the problem is mostly in UI code, page orchestration, state ownership, component responsibilities, or user interaction flow.
+当问题主要集中在 UI 代码、页面编排、状态归属、组件职责或交互流程时，读取这个 reference。
 
-## Common frontend smells
+## 常见前端异味
 
-### 1. Multiple components each implement the same orchestration
-Typical signal:
+### 1. 多个组件各自实现同一套流程
+典型信号：
 
-- several buttons / menus / empty states trigger the same async chain
-- each component owns slightly different copies of the flow
+- 多个按钮 / 菜单 / 空态都在触发同一条异步链路
+- 每个组件里都维护了一份相似但不完全相同的逻辑
 
-Preferred direction:
+优先方向：
 
-- move the real flow into one shared owner
-- keep each UI surface as a trigger only
+- 把真正的处理流程收进一个共享 owner
+- UI 入口只保留触发能力
 
-### 2. Presentation and side effects are mixed together
-Typical signal:
+### 2. 展示和副作用混在一起
+典型信号：
 
-- one component both renders UI and manages file handling / requests / data shaping / success toasts / retries
+- 一个组件既负责渲染 UI，又负责文件处理、请求、数据整形、成功提示、重试等
 
-Preferred direction:
+优先方向：
 
-- keep rendering close to the component
-- extract orchestration into a hook/controller/shared module
+- 渲染尽量留在组件里
+- 把流程编排抽到 hook / controller / shared module
 
-### 3. State ownership is unclear
-Typical signal:
+### 3. 状态归属不清晰
+典型信号：
 
-- one state value affects multiple sibling components
-- callbacks are bouncing through several layers without a clear owner
-- a child effectively owns behavior for unrelated peers
+- 一个状态同时影响多个同级组件
+- 回调在多层之间来回传，但没有明确 owner
+- 子组件实际上在控制其它不相关组件的行为
 
-Preferred direction:
+优先方向：
 
-- move ownership to the nearest common parent
-- pass down narrow props and explicit handlers
+- 把状态提升到最近的共同父层
+- 向下只传必要状态和显式 handler
 
-### 4. Indirect communication
-Typical signal:
+### 4. 间接通信过多
+典型信号：
 
 - CustomEvent
-- window events
-- ad-hoc global signals
-- refs used as a hidden command bus
+- window 事件
+- 临时全局信号
+- ref 被拿来当隐藏命令通道
 
-Preferred direction:
+优先方向：
 
-- explicit prop callback
-- shared hook owned by parent
-- stable controller/service boundary
+- 显式 props 回调
+- 父层持有共享 hook
+- 稳定的 controller / service 边界
 
-Use indirect communication only when the tree boundary truly requires it.
+只有真的跨树、跨运行时、跨容器时，才保留事件机制。
 
-### 5. Overlifting state
-Typical signal:
+### 5. 状态提升过头
+典型信号：
 
-- everything is moved to a page/global store even though the behavior is local
+- 本来只是页面局部行为，却被放进 page/global store
 
-Preferred direction:
+优先方向：
 
-- lift only to the nearest level that actually needs coordination
-- avoid store/globalization unless multiple distant consumers truly need it
+- 只提升到真正需要协调的那一层
+- 不要为了“统一”就默认全局化
 
-## Choosing the right abstraction
+## 如何选抽象
 
-### Shared helper
-Use when the extracted logic is mostly pure:
+### shared helper
+适合抽出纯逻辑：
 
 - parse
 - transform
 - map
 - validate
-- derive payloads
+- payload 生成
 
-### Hook
-Use when the flow is interactive and stateful:
+### hook
+适合带交互状态的流程：
 
-- pending state
-- selection state
-- retries
-- error/success UI behavior
-- imperative trigger for UI actions
+- pending 状态
+- 选择状态
+- 重试
+- 错误/成功反馈
+- 需要命令式触发的 UI 行为
 
-### Page-level owner
-Use when multiple sibling components need the same capability or shared state.
+### page-level owner
+适合多个同级组件共享一套能力或状态。
 
-### Service / uploader / manager
-Use when the workflow centers on asynchronous orchestration, remote calls, files, or resources and should not live inside a visual component.
+### service / uploader / manager
+适合异步编排、远程调用、文件/资源处理，不适合继续塞在视觉组件里。
 
-## Preferred answer shape for frontend cases
+## 前端问题回答时应说清楚什么
 
-Good frontend plans usually clarify:
+一个好的前端改造方案，通常要明确：
 
-1. which layer owns the state
-2. which component becomes trigger-only
-3. what logic gets centralized
-4. what communication mechanism is removed
-5. what regression path must be retested
+1. 哪一层持有状态
+2. 哪个组件变成 trigger-only
+3. 哪些逻辑被统一收口
+4. 哪种通信机制要被移除
+5. 哪条回归路径必须重测
 
-## Frontend-specific trade-off language
+## 常用表述
 
-Useful phrases:
+- “这样可以让 UI 入口保持薄，只把编排逻辑收进一个 owner。”
+- “空态和菜单会变成同一条流程的两个入口。”
+- “这能把事件式通信改成显式的父层持有。”
+- “这次先拆到这里就够了，再细拆属于提前设计。”
 
-- “This keeps the UI surface thin and moves orchestration into one owner.”
-- “The empty state and the menu become two entry points into the same flow.”
-- “This removes event-based coordination in favor of an explicit parent-owned trigger.”
-- “This is enough for this change; splitting further would be premature.”
+## 常见坑
 
-## Common pitfalls
+默认不要这样建议：
 
-Avoid recommending these by default:
-
-- introducing global state for page-local behavior
-- extracting many tiny hooks before the boundary is proven
-- keeping duplicated async logic in separate components
-- solving ownership problems with events instead of hierarchy
-- forcing a reusable framework abstraction for a one-off workflow
+- 为页面局部行为上全局状态
+- 边界还没稳定就抽很多小 hook
+- 让多个组件继续各自维护同一套异步逻辑
+- 用事件机制解决本该用层级关系解决的问题
+- 为一次性流程硬做通用框架抽象
